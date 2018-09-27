@@ -18,8 +18,8 @@ favicon: favicon.png
 repository: justcy/justcy.github.io
 github_url: https://github.com/justcy
 # cnblog_url: 
-url: http://blog.kanter.com
-enforce_ssl: kanter.com
+url: http://blog.kanter.cn
+enforce_ssl: kanter.cn
 
 ## Gem
 plugins:
@@ -62,12 +62,16 @@ navs:
     label: Home
 
   -
-    href: /PHP.html
+    href: /php.html
     label: PHP
 
   -
-    href: /Golang.html
+    href: /golang.html
     label: Golang
+
+   -
+    href: /tools.html
+    label: Tools
 
   -
     href: /archives.html
@@ -85,33 +89,42 @@ navs:
 # labels. my blog key words
 labels:
 
-  -
-    href: /share/2017/10/01/resource-sharing.html
-    name: 资源
+  # -
+  #   href: /share/2017/10/01/resource-sharing.html
+  #   name: 资源
 
-  -
-    href: /life.html
-    name: 故事
+  # -
+  #   href: /life.html
+  #   name: 故事
 
-  -
-    href: /arch.html
-    name: 架构
+  # -
+  #   href: /arch.html
+  #   name: 架构
     
-  -
-    href: /jvm.html
-    name: Jvm
+  # -
+  #   href: /jvm.html
+  #   name: Jvm
 
-  -
-    href: /fastdfs.html
-    name: FastDFS
+  # -
+  #   href: /fastdfs.html
+  #   name: FastDFS
 
-  -
-    href: /mongodb.html
-    name: MongoDB
+  # -
+  #   href: /mongodb.html
+  #   name: MongoDB
 
-  -
-    href: /docker.html
-    name: Docker
+  # -
+  #   href: /docker.html
+  #   name: Docker
+ -
+    href: /php.html
+    name: PHP
+ -
+    href: /golang.html
+    name: Golang
+ -
+    href: /tools.html
+    name: tools
 
   -
     href: /open-source.html
@@ -121,19 +134,22 @@ labels:
 classes:
 
   -
-    href: /life.html
-    name: 我的故事
-    describe: 生活就是故事，故事就是生活
-
+    href: /beyond_code.html
+    name: 技术之外
+    describe: 编程是一种生活，生活却不仅只有编程
   -
     href: /arch.html
-    name: 架构师之路
-    describe: 一个架构师的自我修养
+    name: 全栈之路
+    describe: 如何成为一个合格的全栈 
 
-  -
-    href: /jvm.html
-    name: Jvm系列文章
-    describe: Java之根基，Java程序员必学
+  # -
+  #   href: /golang.html
+  #   name: 
+  #   describe: 
+  # -
+  #   href: /jvm.html
+  #   name: 
+  #   describe: 
 
 
 # ---------------- #
