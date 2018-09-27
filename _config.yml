@@ -17,7 +17,7 @@ favicon: favicon.png
 
 repository: justcy/justcy.github.io
 github_url: https://github.com/justcy
-cnblog_url: 
+# cnblog_url: 
 url: http://blog.kanter.com
 enforce_ssl: kanter.com
 
@@ -62,12 +62,12 @@ navs:
     label: Home
 
   -
-    href: /spring-boot.html
-    label: Spring-Boot
+    href: /PHP.html
+    label: PHP
 
   -
-    href: /spring-cloud.html
-    label: Spring-Cloud
+    href: /Golang.html
+    label: Golang
 
   -
     href: /archives.html
