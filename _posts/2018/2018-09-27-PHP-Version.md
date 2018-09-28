@@ -11,4 +11,6 @@ Mac Cannot tap homebrew/php invalid syntax in tap
 '''
 网上找了很多方法都不能解决。
 
+最后在项目 issus 中找到了答案
+
 
