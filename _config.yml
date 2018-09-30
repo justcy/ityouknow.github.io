@@ -126,9 +126,9 @@ labels:
     href: /tools.html
     name: tools
 
-  -
+ -
     href: /open-source.html
-    name: Code   
+    name: Code
 
 # selected articles
 classes:
