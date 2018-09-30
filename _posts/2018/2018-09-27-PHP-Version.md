@@ -1,3 +1,10 @@
+---
+layout: post
+title: 解决php-version不能安装
+category: php
+tags: [php]
+keywords: php,php-version
+---
 ##什么是PHP-Version
 
 做过PHP开发的都知道，要在本地存在多个php版本环境并且随意切换是比较麻烦的。
