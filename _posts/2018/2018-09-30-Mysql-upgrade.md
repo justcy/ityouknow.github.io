@@ -31,3 +31,6 @@ select * from mysql.user where user='root'
 
 注意：命令要在mysql的宿主机上执行，而不是mysql命令行下
 修复完成后，重启数据库，问题解决，消失的表又回来了
+
+## 参考链接 
+[修复 MySQL 数据库结构错误 – 升级](http://cnzhx.net/blog/mysql_upgrade-fix-structure-error/)
