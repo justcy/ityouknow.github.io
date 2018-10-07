@@ -1,3 +1,10 @@
+---
+layout: post
+title: go语言时间
+category: go
+tags: [go]
+keywords: go,time,formart
+---
 #go语言中日期与时间戳相互转换，参数有特殊含义
 月份 1,01,Jan,January
 日　 2,02,_2
