@@ -20,4 +20,9 @@ Mac Cannot tap homebrew/php invalid syntax in tap
 
 最后在项目 issus 中找到了答案
 
+[issues](https://github.com/wilmoore/php-version/issues/67)
+
+issuse 里面说，该 formulae 在一次提交中被删除了，具体的commit 地址[Delete more formulae](https://github.com/Homebrew/homebrew-php/commit/3a1e85d0f2b1278df225622acf8766d6686eaea1#diff-39a34f604b24e0756f9d8eaed00c088e)
+
+
 
