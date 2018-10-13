@@ -13,9 +13,9 @@ php-version 是一个在mac/linux系统下快捷切换php版本的工具。
 
 ## 事件
 自从home
-'''
+```
 Mac Cannot tap homebrew/php invalid syntax in tap
-'''
+```
 网上找了很多方法都不能解决。
 
 最后在项目 issus 中找到了答案

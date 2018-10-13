@@ -9,10 +9,17 @@ keywords: mac,apache,web
 
 1、使用lsof -i:80查看当前占用80端口的进程，如果有就kill掉。
 2、关闭mac自带apache的启动。
-'''
+
+
+
+```
 sudo launchctl unload -w /System/Library/LaunchDaemons/org.apache.httpd.plist
-'''
+```
+
+
 如果哪天你想让它开机启动了,则将unload 改为 load:
-'''
+
+
+```
 sudo launchctl load -w /System/Library/LaunchDaemons/org.apache.httpd.plist
-'''
+```
