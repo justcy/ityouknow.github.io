@@ -1,7 +1,7 @@
 ---
 layout: post
 title: mac下自带的Apache开启关闭
-category: toos
+category: tools
 tags: [apach,mac,web]
 keywords: mac,apache,web
 ---

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Mysql 升级过后错误
-category: mysql
+category: tools
 tags: [mysql]
 keywords: mysql,upgrade,docker
 ---
