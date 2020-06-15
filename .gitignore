@@ -3,3 +3,17 @@ _drafts
 .sass-cache
 .jekyll-metadata
 .idea
+
+_site/*
+_theme_packages/*
+
+Thumbs.db
+.DS_Store
+
+!.gitkeep
+
+.rbenv-version
+.rvmrc
+
+*.lock
+.idea
