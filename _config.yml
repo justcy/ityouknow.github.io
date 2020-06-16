@@ -130,7 +130,7 @@ jiathis:
 #### Analytics
 google_analytics:
   enable: true
-  id: 158338568        ## e.g. UA-46321946-2 your google analytics ID.
+  id: UA-104991364-1        ## e.g. UA-46321946-2 your google analytics ID.
   site: blog.kanter.cn     ## e.g. wuchong.me your google analytics site or set the value as auto.
 ## You MUST upgrade to Universal Analytics first!
 ## https://developers.google.com/analytics/devguides/collection/upgrade/?hl=zh_CN
