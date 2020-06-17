@@ -31,8 +31,8 @@ paginate: 20
 title : Jekyll Jacman
 tagline: A fresh looking and responsive theme for Jekyll
 assets: /assets
-url:
-baseurl:
+url: blog.kanter.cn
+baseurl: blog.kanter.cn
 
 #### Language
 language: zh-CN    ## blog site languages: en, zh-CN, zh-TW, de
@@ -166,5 +166,5 @@ simple_jekyll_search:
   enable: true
   fulltext: false
 
-gems:
+plugins:
  - jemoji
