@@ -32,7 +32,7 @@ title : Jekyll Jacman
 tagline: A fresh looking and responsive theme for Jekyll
 assets: /assets
 url: blog.kanter.cn
-baseurl: blog.kanter.cn
+baseurl: /
 
 #### Language
 language: zh-CN    ## blog site languages: en, zh-CN, zh-TW, de
