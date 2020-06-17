@@ -28,8 +28,8 @@ defaults:
 paginate: 20
 
 #### Site
-title : Jekyll Jacman
-tagline: A fresh looking and responsive theme for Jekyll
+title : Justcy的博客
+tagline: 非宁静无以致远，非淡泊无以明志
 assets: /assets
 url: blog.kanter.cn
 baseurl: /
@@ -167,4 +167,5 @@ simple_jekyll_search:
   fulltext: false
 
 plugins:
+ - jekyll-admin
  - jemoji
