@@ -32,8 +32,8 @@ title : Justcy的博客
 tagline: 非宁静无以致远，非淡泊无以明志
 assets: /assets
 url: blog.kanter.cn
-baseurl: blog.kanter.cn
-github: https://github.com/justcy/justcy.github.io
+baseurl: /
+#github: https://github.com/justcy/justcy.github.io
 
 #### Language
 language: zh-CN    ## blog site languages: en, zh-CN, zh-TW, de
