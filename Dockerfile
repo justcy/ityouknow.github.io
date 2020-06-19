@@ -1,4 +1,5 @@
 FROM jekyll/minimal:pages as builder
+WORKDIR /srv/jekyll
 ADD . /srv/jekyll
 RUN  rm -rf /srv/jekyll/Gemfile.lock && bundle update && bundle install \
      && jekyll build
