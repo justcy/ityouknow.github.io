@@ -3,7 +3,8 @@ _drafts
 .sass-cache
 .jekyll-metadata
 .idea
-
+Gemfile.lock
+.deploy_git
 _site/*
 _theme_packages/*
 
