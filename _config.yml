@@ -32,7 +32,7 @@ title : Justcy的博客
 tagline: 非宁静无以致远，非淡泊无以明志
 assets: /assets
 url: blog.kanter.cn
-baseurl: /
+baseurl: 
 #github: https://github.com/justcy/justcy.github.io
 
 #### Language
@@ -173,5 +173,5 @@ plugins:
   - jekyll-mentions
   - jekyll-redirect-from
   - jekyll-sitemap
-  - jekyll-admin
+  # - jekyll-admin
   - jemoji
