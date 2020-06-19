@@ -1,7 +1,7 @@
-FROM jekyll/minimal:pages as builder
+FROM jekyll/minimal:pages as p
 WORKDIR /srv/jekyll
 ADD . /srv/jekyll
 RUN  rm -rf /srv/jekyll/Gemfile.lock && bundle update && bundle install \
-     && jekyll build
+     && jekyll build && pwd
 FROM justcy/nginx:latest
-COPY --from=builder /srv/jekyll/_site /usr/share/nginx/html/
+COPY --from=p /srv/jekyll/_site /usr/share/nginx/html/
