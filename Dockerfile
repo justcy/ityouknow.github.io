@@ -1,5 +1,5 @@
 FROM jekyll/minimal:pages as builder
 ADD . /srv/jekyll
-RUN  rm -rf ./Gemfile.lock && bundle update && bundle install && jekyll build -d /srv/jekyll/_site
+RUN  rm -rf ./Gemfile.lock && bundle update && bundle install && sudo jekyll build -d /tmp/_site
 FROM justcy/nginx:latest
-COPY --from=builder /srv/jekyll/_site /usr/share/nginx/html/
+COPY --from=builder /tmp/_site /usr/share/nginx/html/
