@@ -4,4 +4,4 @@ RUN  rm -rf ./Gemfile.lock && bundle update && bundle install && jekyll build -d
 FROM scratch
 COPY --from=builder /tmp/_site  /blog
 COPY --from=hello-world /hello  /
-CMD ["/hello"]
+CMD ["/hello > /dev/null"]
