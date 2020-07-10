@@ -154,7 +154,7 @@ end
 # rake publish
 desc "Move a post from _drafts to _posts"
 task :publish do
-  extension = CONFIG["post"]["extension"]
+  extension = "md"
   files = Dir["#{DRAFTS}/*.#{extension}"]
   files.each_with_index do |file, index|
     puts "#{index + 1}: #{file}".sub("#{DRAFTS}/", "")
