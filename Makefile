@@ -38,7 +38,9 @@ create:
 	@mkdir -p _draft/$(CAT)
 	@touch _draft/$(CAT)/$(shell echo `date +'%Y-%m-%d'`)-$(shell echo  `echo $(TITLE)|sed 's/[ ][ ]*/-/g'`).md
 	@echo "$$template" | sed "s/{title}/${TITLEZH}/g" | sed "s/{category}/${CAT}/g"> _draft/$(CAT)/$(shell echo `date +'%Y-%m-%d'`)-$(shell echo  `echo $(TITLE)|sed 's/[ ][ ]*/-/g'`).md
+deploy:
+	git add . && git commit -am"deploy" && git push origin master
 pb:
-	rsync -avrz --delete-excluded _draft/* _posts/ && git add . && git commit -am"deploy" && git push origin master
+	rsync -avrz --delete-excluded _draft/* _posts/ && make deploy
 clean:
 	rm -rf _draft/*
