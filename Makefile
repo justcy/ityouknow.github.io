@@ -6,7 +6,7 @@ title: "{title}"
 tagline: ""
 date: '$(shell date +'%Y-%m-%d %H:%M:%S') +0800'
 category: {category}
-tags: {category}
+tags: {category} 
 keywords: {category},{title}
 description: {category},{title}
 ---
