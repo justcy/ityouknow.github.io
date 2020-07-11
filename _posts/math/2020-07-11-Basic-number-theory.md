@@ -19,7 +19,7 @@ description: math,数论
      
 素数定理:令π(x)表示小于整数x的素数个数，则有:
 ```math
-\lim _{x \rightarrow \infty} \frac{\pi(x)}{x / \ln (x)}=1
+\\lim _{x \\rightarrow \\infty} \\frac{\\pi(x)}{x / \\ln (x)}=1
 ```
 也可表达如下
 ```math
