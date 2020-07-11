@@ -1,7 +1,6 @@
 #!/bin/bash
 #author:justcy
 #desc: create a new post articles with template
-
 CATEGORY=$1
 TITLE=$2
 TITLE_ZH=$3
@@ -12,6 +11,11 @@ TIME=`date "+%H:%M:%S"`
 
 DIR=`pwd`
 
+if [ ! -d "$DIR/_draft/$CATEGORY" ]; then
+        mkdir $DIR/_draft/$CATEGORY
+else
+        echo "dir exists"
+fi
 # file path generate
 FILE_NAME="$DATE-`echo $TITLE|sed 's/[ ][ ]*/-/g'`.md"
 echo "file name:" _posts/$CATEGORY/$FILE_NAME
