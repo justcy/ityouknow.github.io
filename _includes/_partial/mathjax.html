@@ -5,7 +5,16 @@
     tex2jax: {
       inlineMath: [ ['$','$'], ["\\(","\\)"] ],
       processEscapes: true
-    }
+    }, TeX: {
+            extensions: ["AMSmath.js", "AMSsymbols.js"],
+             equationNumbers: {
+                 autoNumber: ["AMS"],
+                 useLabelIds: true
+             },
+             Macros: {
+                 hfill: "{}"
+             }
+         }
   });
 </script>
 
