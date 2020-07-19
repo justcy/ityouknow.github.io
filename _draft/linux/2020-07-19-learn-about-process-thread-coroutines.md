@@ -99,6 +99,12 @@ go协程，叫goroutine。在进程中创建，比线程更小，十几个gorout
 
 # 扩展
 
+## CPU调度算法
+
+https://www.cnblogs.com/PIRATE-JFZHOU/p/8094790.html
+
+https://zhuanlan.zhihu.com/p/111813230
+
 ## 进程/线程之间的亲缘性
 
 亲缘性：是指在多核系统情况下，进程/线程只在某个CPU上运行
