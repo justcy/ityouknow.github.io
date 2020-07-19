@@ -105,7 +105,7 @@ go协程，叫goroutine。在进程中创建，比线程更小，十几个gorout
 
 如：
 
-```code
+```
 BOOL WINAPI SetProcessAffinityMask(
     _In_ HANDLE hProcess,
     _In_ DWORD_PTR dwProcessAffinityMask
