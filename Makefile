@@ -11,6 +11,8 @@ keywords: {category},{title}
 description: {category},{title}
 ---
 > {title}
+# 引言
+嘻嘻嘻
 
 # 标题
 内容
@@ -40,7 +42,7 @@ create:
 	@touch _draft/$(CAT)/$(shell echo `date +'%Y-%m-%d'`)-$(shell echo  `echo $(TITLE)|sed 's/[ ][ ]*/-/g'`).md
 	@echo "$$template" | sed "s/{title}/${TITLEZH}/g" | sed "s/{category}/${CAT}/g"> _draft/$(CAT)/$(shell echo `date +'%Y-%m-%d'`)-$(shell echo  `echo $(TITLE)|sed 's/[ ][ ]*/-/g'`).md
 push:
-	git add . && git commit -am"deploy" && git pull origin master && git push origin master
+	git add . && git commit -am"deploy" && git push origin master
 pb:
 	make rsync && make deploy
 rsync:
