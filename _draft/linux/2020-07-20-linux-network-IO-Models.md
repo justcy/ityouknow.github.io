@@ -1,4 +1,6 @@
 ---
+
+
 layout: post
 title: "linux的I/O模型解析"
 tagline: ""
@@ -52,7 +54,8 @@ Linux 下的I/O模型一共有5种，分别是
     设置套接字为非阻塞模式，除了ioctlsocket()函数外，还可以使用WSAAsyncselect()和WSAAsyncselect()函数。
     由于使用非阻塞套接字在调用函数时，会经常返回WSAEWOULDBLOCK错误。因此在任何时候，都应仔细检查返回代码，并做好”失败“准备。应用程序应该不断调用这个函数，直到它返回成功标示。常用做法，在while循环内，不断调用recv()函数，以读入1024字节的数据。实际上这种做法很浪费系统资源。
 # I/O复用模型（I/O multiplexing）
-    I/O复用模型，也就是通常所说的，select、poll、epoll。有些地方也叫做 event driven I/O(事件驱动模型)，它是实际使用最多的一种I/O模型。我们都知道，select/epoll的好处就在于单个process就可以处理多个网络连接的I/O。它的基本原理就是select/epoll这个function会不断轮训所负责的所有socket,当某个select有数据到达了，就通知用户进程。它的流程图如下:
+I/O复用模型，也就是通常所说的，select、poll、epoll。有些地方也叫做 event driven I/O(事件驱动模型)，它是实际使用最多的一种I/O模型。我们都知道，select/epoll的好处就在于单个process就可以处理多个网络连接的I/O。它的基本原理就是select/epoll这个function会不断轮训所负责的所有socket,当某个select有数据到达了，就通知用户进程。它的流程图如下:
+
 ![graphics/06fig03.gif](http://static.kanter.cn/uPic/2020/07/23_06fig03.gif)	
     当用户调用了select，那么整个进程就被block，而同时，kernel会”监视“所有select负责的socket，当有任何socket中的数据准备好了，select就会返回。再由用户进程将数据从kernel拷贝到用户进程。
     上图和Blocking I/O的图其实并没有太大不同，事实上，效率还更差一些。因为这里需要两次system call(select和recvfrom)，而blocking I/O只调用了一个system call(recvfrom)。但是，用select的优势在于它可以同时处理多个connection。所以，若处理的连接数并不是很高的话，使用select/epoll的web server不一定比multi-threading + blocking I/O的web server性能更好，相反，可能延迟还要更大。select/epoll的优势并不在于对单个链接处理更快，而是在于能够处理更多的链接。
@@ -86,14 +89,89 @@ linux下的asynchronous IO其实用得很少。先看一下它的流程：
 我们回到开篇的几个问题
 > blocking和non-blocking的区别在哪？
 > synchronous IO和asynchronous IO的区别在哪？
-是不是很简单了呢？
+
+blocking和non-blocking的区别：blocking 在整个I/O过程中阻塞进程，non-blocking在准备数据阶段是不阻塞进程的(会立即返回error)。
+
+synchronous IO和asynchronous IO的区别：synchronous IO会阻塞进程，虽然non-blocking I/O在数据准备过程中并没有被block，但是当执行recvfrom这个system call的时候，这个过程是被block了的。而asynchronous I/O则不一样，当进程发起I/O操作之后就不再理睬，直到kernel发送一个信号，告诉进程说I/O完成了。整个过程中进程是没有被block的。
 
 # 扩展
-## select、poll、epoll简介
+## select、poll、epoll、kqueue简介
+
+Epoll跟select都能提供多路I/O复用的解决方案。在现在的linux系统里面都能够支持。其中epoll是linux特有，select则是POSIX所规定，一般操作系统均有实现。
+
 ### select
+
+select函数本身是阻塞的，它与socket是否阻塞没有关系。无论socket是阻塞还是非阻塞，都可以使用阻塞的select函数。不过，当select执行完后，不同的socket会有不同操作：
+
+1. 阻塞套接字，会让read阻塞，直到读到所需要的所有字节；
+2. 非阻塞套接字，会让read读完fd中的数据后就返回，但如果你原本要求要读10个数据，这里只读了8个，如果你不再次使用select来判断是否可读，而是直接read,很可能返回EAGAIN=EWOULDBLOCK(BSD风格)，此错误由于在非阻塞套接字上发起不能立即完成的操作返回。例如，当套接字上没有排队数据可读时调用了recv()函数，此错误不是严重错误，相应操作应该稍后重试。对于在非阻塞SOCK_STREAM套接字上调用connect()函数来说，报告EWOULDBLOCK是正常的，因为建立一个连接必须花费一些时间。
+> EWOULDBLOCK的意思是如果你不把socket设成非阻塞(即阻塞)模式时，这个读操作将阻塞，也就是说数据还未准备好(但系统知道数据来了，所以select告诉你那个socket可读)。使用非阻塞模式做I/O操作的细心的人会检查errno是不是EAGAIN、EWOULDBLOCK、EINTR，如果是就应该重读，一般是用循环。如果你不是一定要用非阻塞就不要设成这样，这就是为什么系统的默认模式是阻塞。
+select 函数原型
+```c
+int select(int n,fd_set * readfds,fd_set * writefds,fd_set * exceptfds,struct timeval * timeout);
+/** n代表文件描述词加1；参数readfds、writefds 和exceptfds 称为描述词组，是用来回传该描述词的读，写或例外的状况。
+```
+
+下面的宏提供了处理这三种描述词组的方式：
+
+```c
+FD_CLR(inr fd,fd_set* set); //用来清除描述词组set中相关fd 的位
+FD_ISSET(int fd,fd_set *set); //用来测试描述词组set中相关fd 的位是否为真
+FD_SET(int fd,fd_set*set); //用来设置描述词组set中相关fd的位
+FD_ZERO(fd_set *set); //用来清除描述词组set的全部位
+```
+
+参数timeout为结构timeval，用来设置select()的等待时间，其结构定义如下
+```c
+struct timeval
+{
+    time_t tv_sec;
+    time_t tv_usec;
+};
+```
+
+
+
+select的本质上是通过设置和检查存放fd标志位的数据结构来进行下一步处理。这样所带来的的缺点是：
+
+1. 单个进程可监视的fd数量被限制，即能监听端口的大小有限制，一般来说，这个数据和系统的内存关系很大，具体数据可以用以下命令查看。32位机器默认是1024个。64位机器默认是2048个。
+2. 对socket进行的扫描是线性扫描，即采用轮询的方法，效率较低。当socket比较多的时候，每次select()都要通过遍历FD_SETSIZE个socket来完成调度，不管哪个socket是活跃的，都遍历一遍。这会浪费很多CPU时间。如果能给每个套接字注册某个回调函数，当他们活跃时，自动完成相关操作，那就避免了轮训，这正是epoll与kqueue做的。
+3. 需要维护一个用来存放大量fd的数据结构，这样会使得用户空间和内核空间在传递数据结构时复制开销大。
+
 ### poll
+
+poll本质上和select()没有差别，它将用户传入的数组拷贝到内核空间，然后查询每个fd对应的设备状态，如果设备就绪则在设备等待队列中加入一项并继续遍历，如果遍历完所有fd后没有发现就绪设备，则blocking当前进程，直到设备就绪或者主动超时，被唤醒后它又要再次遍历fd。这个过程经历了多次无谓的遍历。
+
+poll没有最大连接数限制，元婴是它是基于链表来存储的，但是同样有一个缺点
+
+1. 大量的fd的数组被整体复制于用户态和内核地址空间之间，而不管这样的复制是不是有意义。
+2. poll还有一个特点是"水平触发"，如果报告了fd后，没有被处理，那么下次再poll时会再次报告该fd。
+
 ### epoll
+
+epoll支持水平触发(LT,level triggered)和边缘触发(ET,edge Triggered)，最大的特点在于边缘触发，它只告诉进程哪些fd刚变为就绪态，并且只会通知一次。另外，epoll使用”事件“的就绪通知方式，通过epoll_ctl注册fd，一旦该fd就绪，内核会采用类似callback的回调机制来激活该fd，epoll_wait便可收到通知。epoll的特点如下：
+
+1. 没有最大并发连接的限制，能打开fd的上线远大于1024，通常1G的内存上能监听10个端口；
+
+2. 效率提升，不采用轮询方式，不会随着fd数目的增加而效率下降。只有活跃可用的fd才会调用callback函数。epoll最大的有点在于，只管活跃的连接，而跟连接总数无关，因此在实际网络环境中，epoll的效率远远高于select和poll
+
+3. 内存拷贝，利用mmap()文件银蛇内存加速内与内核空间的消息传递，即epoll使用mmap()减少复制开销。
+> ET：边缘触发。仅当状态发生变化时才会通知，epoll_wait返回。换句话说，就是对于一个事件，只通知一次，且支持非阻塞的socket。
+> LT: 水平触发。是epoll默认的工作方式。类似select/poll,只要还有没有处理的事件就会一直通知。以LT方式调用epoll接口，就相当于一个速度比较快的poll，LT同时支持阻塞和不阻塞的socket。
+
+### kqueue
+kqueue是UNIX上比较高效的I/O复用技术。与epoll类似，不过比epoll更易用。
+
 ### select、poll、epoll 区别总结
+
+| 模式   | 最大连接数 | FD剧增后带来的I/O效率问题 | 消息传递方式 |
+| :----: | :--------: | :-------------------: | :-------------------: |
+| select | 单个进程所能打开的最大连接数有FD_SETSIZE宏定义，其大小是32个整数的大小（在32位的机器上，大小就是32*32，同理64位机器上FD_SETSIZE为32*64），当然我们可以对进行修改，然后重新编译内核，但是性能可能会受到影响，这需要进一步的测试。 | 因为每次调用时都会对连接进行线性遍历，所以随着FD的增加会造成遍历速度慢的“线性下降性能问题”。 | 内核需要将消息传递到用户空间，都需要内核拷贝动作 |
+| poll   | poll本质上和select没有区别，但是它没有最大连接数的限制，原因是它是基于链表来存储的 | 同上 | 同上 |
+| poll   | 虽然连接数有上限，但是很大，1G内存的机器上可以打开10万左右的连接，2G内存的机器可以打开20万左右的连接 | 因为epoll内核中实现是根据每个fd上的callback函数来实现的，只有活跃的socket才会主动调用callback，所以在活跃socket较少的情况下，使用epoll没有前面两者的线性下降的性能问题，但是所有socket都很活跃的情况下，可能会有性能问题。 | epoll通过内核和用户空间共享一块内存来实现的 |
+
+综上所述，选择select，poll，epoll时要根据具体的使用场合以及这三种方式的自身特点。表面上看epoll的性能最好，但是在连接数少并且连接都十分活跃的情况下，select和poll的性能可能比epoll好，毕竟epoll的通知机制需要很多函数回调。select低效是因为每次它都需要轮询。但低效也是相对的，视情况而定，也可通过良好的设计改善。
+
 
 ---
 参考：
