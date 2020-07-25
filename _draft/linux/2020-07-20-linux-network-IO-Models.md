@@ -107,6 +107,8 @@ select函数本身是阻塞的，它与socket是否阻塞没有关系。无论so
 2. 非阻塞套接字，会让read读完fd中的数据后就返回，但如果你原本要求要读10个数据，这里只读了8个，如果你不再次使用select来判断是否可读，而是直接read,很可能返回EAGAIN=EWOULDBLOCK(BSD风格)，此错误由于在非阻塞套接字上发起不能立即完成的操作返回。例如，当套接字上没有排队数据可读时调用了recv()函数，此错误不是严重错误，相应操作应该稍后重试。对于在非阻塞SOCK_STREAM套接字上调用connect()函数来说，报告EWOULDBLOCK是正常的，因为建立一个连接必须花费一些时间。
 > EWOULDBLOCK的意思是如果你不把socket设成非阻塞(即阻塞)模式时，这个读操作将阻塞，也就是说数据还未准备好(但系统知道数据来了，所以select告诉你那个socket可读)。使用非阻塞模式做I/O操作的细心的人会检查errno是不是EAGAIN、EWOULDBLOCK、EINTR，如果是就应该重读，一般是用循环。如果你不是一定要用非阻塞就不要设成这样，这就是为什么系统的默认模式是阻塞。
 select 函数原型
+
+
 ```c
 int select(int n,fd_set * readfds,fd_set * writefds,fd_set * exceptfds,struct timeval * timeout);
 /** n代表文件描述词加1；参数readfds、writefds 和exceptfds 称为描述词组，是用来回传该描述词的读，写或例外的状况。
