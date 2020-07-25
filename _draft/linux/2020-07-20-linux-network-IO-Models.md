@@ -6,8 +6,8 @@ title: "linux的I/O模型解析"
 tagline: ""
 date: '2020-07-20 23:42:45 +0800'
 category: linux
-tags: linux,I/O,I/O模型,select,poll,epoll,kqueue
-keywords: linux,I/O models,linux的I/O模型解析
+tags:linux I/O模型
+keywords: linux,select,poll,epoll,kqueue,I/O models,linux的I/O模型解析
 description: linux,linux的I/O模型解析
 ---
 > linux的模型解析

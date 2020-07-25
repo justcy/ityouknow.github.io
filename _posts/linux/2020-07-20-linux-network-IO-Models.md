@@ -6,8 +6,8 @@ title: "linux的I/O模型解析"
 tagline: ""
 date: '2020-07-20 23:42:45 +0800'
 category: linux
-tags: linux,I/O,I/O模型,select,poll,epoll,kqueue
-keywords: linux,I/O models,linux的I/O模型解析
+tags:linux I/O模型
+keywords: linux,select,poll,epoll,kqueue,I/O models,linux的I/O模型解析
 description: linux,linux的I/O模型解析
 ---
 > linux的模型解析
@@ -144,7 +144,7 @@ select的本质上是通过设置和检查存放fd标志位的数据结构来进
 
 poll本质上和select()没有差别，它将用户传入的数组拷贝到内核空间，然后查询每个fd对应的设备状态，如果设备就绪则在设备等待队列中加入一项并继续遍历，如果遍历完所有fd后没有发现就绪设备，则blocking当前进程，直到设备就绪或者主动超时，被唤醒后它又要再次遍历fd。这个过程经历了多次无谓的遍历。
 
-poll没有最大连接数限制，元婴是它是基于链表来存储的，但是同样有一个缺点
+poll没有最大连接数限制，原因是它是基于链表来存储的，但是同样有一个缺点
 
 1. 大量的fd的数组被整体复制于用户态和内核地址空间之间，而不管这样的复制是不是有意义。
 2. poll还有一个特点是"水平触发"，如果报告了fd后，没有被处理，那么下次再poll时会再次报告该fd。

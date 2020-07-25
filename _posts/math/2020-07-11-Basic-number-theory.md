@@ -4,7 +4,7 @@ title: "数论"
 tagline: ""
 date: '2020-07-11 23:42:51 +0800'
 category: math
-tags: math 数论 基础数论
+tags: math 数论
 keywords: math,数论
 description: math,数论
 ---
