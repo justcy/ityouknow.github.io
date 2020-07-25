@@ -44,7 +44,7 @@ create:
 push:
 	git add . && git commit -am"deploy" && git push origin master
 pb:
-	make rsync && make deploy
+	make rsync && make push
 rsync:
 	rsync -avrz --delete-excluded _draft/* _posts/
 clean:
