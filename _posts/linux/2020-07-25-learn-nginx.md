@@ -10,7 +10,7 @@ description: linux,ngixn学习笔记
 ---
 > ngixn学习笔记
 # 引言
-嘻嘻嘻
+Nginx是俄罗斯人Igor Sysoev编写的一款高性能的HTTP和反向代理服务器。Nginx选择了epoll(Linux 2.6内核)、kqueue(Fress BSD)和eventport(Solaris 10)作为网络I/O模型。Nginx是Apache服务器不错的替代品，它能够支持高达5000个并发连接数响应，而内存、CPU等系统资源消耗非常低。
 
 # 标题
 内容
