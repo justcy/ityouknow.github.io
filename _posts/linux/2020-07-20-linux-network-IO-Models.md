@@ -8,11 +8,8 @@ tags:linux I/O模型
 keywords: linux,select,poll,epoll,kqueue,I/O models,linux的I/O模型解析
 description: linux,linux的I/O模型解析
 ---
-
 > linux的模型解析
-
 # 引言
-
 同步（synchronous） I/O和异步（asynchronous） I/O，阻塞（blocking） I/O和非阻塞（non-blocking）I/O分别是什么，到底有什么区别？这个问题讨论这个问题的时候上下文(context)不同，会得到不同的答案，因此，本文所讨论的背景是Linux环境下的network I/O。
 Linux 下的I/O模型一共有5种，分别是
 
