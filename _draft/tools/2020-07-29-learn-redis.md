@@ -308,24 +308,83 @@ redis一次命令执行过程
 redis的serverCron函数主要功能
 - 更新时间缓存，redisServer中会缓存秒级和毫秒级的当前时间戳，serverCron会以100ms一次的频率更新这两个值，服务器在打印日志、更新服务器LRU时钟、决定是否执行持久化操作、计算服务器上线时间这类对时间精度要求不高的功能上。而对键设置过期时间、添加慢查询日志等，服务器会再次执行系统调用，获取准确时间。
 - 更新LRU时钟，服务器状态中的lrulock属性保存了服务器的LRU时钟，每个Redis对象都会有一个lru属性，用以保存该对象最后一次被命令访问的时间，对象空转时间=lrulock-lru。
-- 更新服务器每秒执行命令次数，
-- 更新服务器内存峰值记录
-- 处理SIGTERM信号，
-- 管理客户端资源
-- 管理数据库资源
-- 执行被延迟的BGREWRITEAOF
-- 检查持久化操作的运行状态
-- 将AOF缓冲内容写入AOF文件
-- 关闭异步客户端
-- 增加Cronloops计数
-- 
+- 更新服务器每秒执行命令次数，serverCron函数中的trackOperationsPerSecond函数会以每100一次的频率执行，这个函数的功能是以抽样计算的方式，估算并记录服务器在最近一秒钟处理的命令请求数量。trackOperationsPerSecond函数每次运行，都会根据ops_sec_last_sample_time记录上一次抽样时间和服务器当前时间，以及ops_sec_sample_ops记录上一次抽样的已执行命令数量和服务器当前已执行命令数量，计算出两次trackOperationsPerSecond调用之间，服务器平均每一毫秒处理了多少个命令请求，然后将这个平均值乘以1000，换算得到服务器一秒钟内能处理多少个命令请求估计值。这个估计值会被作为一个新的数组项放到ops_sec_samples环形数组中。
+- 更新服务器内存峰值记录，服务器中的stat_peak_memory记录了服务器的内存峰值大小，每次serverCron执行时，程序会查看服务器当前使用的内存数量，并将Max(stat_peak_memory,now)保存到stat_peak_memory。
+- 处理SIGTERM信号，在启动服务器时，Redis会为服务器进程的SIGTERM信号关联处理器sigtermHandler函数，这个信号处理器负责在接到SIGTERM信号时，打开服务器状态的Shutdown_asap标示。每次执行serverCron函数，程序都会对shutdown_asap属性进行检查，并根据属性的值决定是否关闭服务器。与一接到SIGTERM信号就关闭不同，这样做是为了确保能够执行持久化操作。
+- 管理客户端资源，serverCron每次执行，都会调用clientsCron函数，clientsCron函数会对一定数量的客户端进行检查，如果客户端与服务器之间的连接已超时，那么程序将释放这个客户端。如果客户端在上一次命令请求之后，输入缓冲区的大小超过了一定长度，程序会释放客户端当前输入缓冲区，并重新创建一个默认大小的输入缓冲区，从而防止客户端输入缓冲区浪费过多内存。
+- 管理数据库资源，serverCron每次执行，都会调用databasesCron函数，作用是检查部分数据库，删除其中的过期键，并在有需要的时候，对字典进行收缩操作。
+- 执行被延迟的BGREWRITEAOF，在服务器执行BGSAVE期间，如果客户端向服务器发来BGREWRITEAOF命令，服务器会将BGREWRITEAOF的执行时间延迟到BGSAVE命令执行完毕之后。每次serverCron执行时，都会检查BGSAVE和BGWRITEAOF是否在执行，如果都没有执行，并且aof_rewrite_scheduled属性值为1，服务器就会执行之前被延迟的BGREWRITEAOF。
+- 检查持久化操作的运行状态，服务器状态使用rdb_child_pid属性和aof_child_pid属性记录执行BGSAVE和BGREWRITEAOF命令的子进程ID，这两个也可以用于检查命令是否正在执行。
+- 将AOF缓冲内容写入AOF文件，若服务器开启了AOF，并且AOF缓冲区有待写入数据，那么ServerCron会调用相关程序，将AOF缓冲区内容写到AOF文件里面。
+- 关闭异步客户端，当客户端的输出缓冲区大小超出了限制，serverCron会关闭这些客户端。
+- 增加Cronloops计数，服务器的cronloops记录了serverCron函数的执行次数。cronloops目前在服务器唯一作用就是子啊复制模块中实现“每执行serverCron函数N次，就执行一次指定代码”
 
+redis服务器初始化过程
+![image-20200804110050309](http://static.kanter.cn/uPic/2020/08/04_image-20200804110050309.png)
+# Redis多机数据库实现
+## 复制
+Redis中使用SLAVEOF命令设置从库复制主服务器，如 在B上执行SLAVEOF A 则B将复制A，B作为从服务器，A作为主服务器。进行复制的主从双方数据库将保存相同的数据，称作“数据库状态一致性”
+Redis旧版本的复制功能分为同步(Sync)和命令传播(command propagate)两个操作。
+- 同步用于将从服务器的数据库状态更新到主服务器所处的数据库状态。
+- 命令传播则用于在主服务器状态被修改，导致主从不一致时，让从服务器的数据库执行相同命令，保证主从数据库重新回到一致状态。
+![image-20200804112049867](http://static.kanter.cn/uPic/2020/08/04_image-20200804112049867.png)
+旧版本复制功能的缺陷，当断线后重新复制，效率非常低。原因：断线重连后会重新发送SYNC命令，整体重新同步。
+为了解决旧版复制功能在处理断线重复情况的低效率问题，Redis从2.8开始使用PSYNC命令替代了SYNC命令。PSYNC具有完整同步(full resynchronization)和部分同步(partial resynchronization)两种模式。完整同步用于初次复制的情况。部分同步则用于处理断线后重复复制的情况：当从服务器断线后重新连上主服务器，如果条件允许，主服务器可以将主从服务器断开期间的写命令发送给从服务器，从服务器执行后，主从数据恢复一致。
+![image-20200804113555232](http://static.kanter.cn/uPic/2020/08/04_image-20200804113555232.png)
+Redis新版复制功能，部分同步的实现主要依靠主从服务器分别维护一个同步偏移量，以及主服务器维护的复制积压缓冲区来实现。主服务器每次命令传播后，会将当前传播的命令记录在复制积压缓冲区(默认1M大小，先入先出)，当断线后，主从偏移量不一致，从服务器重连后，发送PSYNC命令，主服务器会判断 1.当前服务器ID是否为断线前ID，不相同，直接执行完整同步方式。2.当前从服务器的偏移量是否还在复制积压缓冲区内，若存在则执行部分同步，与客户端同步两个偏移量之间的差。如果不存在，则需要采取完整同步方式。
+复制积压缓冲区可根据second*write_size_per_second;来估算，其中second为从服务器断线后重新连上服务器所需的平均时间，而write_size_per_second则是主服务器平均每秒产生的写命令的数量。复制积压缓冲区大小建议设置为：2*second*write_size_per_second
+# Redis 哨兵机制(Sentinel)
+Sentinel是Redis高可用性的解决方案：由一个或多个Sentinel实例组成的Sentinel系统可以监视任意多个主服务器，以及这些主从服务器下的所有从服务器，并在被监视的主服务器进入下线状态时，自动将下线主服务器属下的某个从服务器升级为新的主服务器，然后由新的主服务器代替已经下线的主服务器继续处理命令请求。
+下图是哨兵启动过程
+![image-20200804145834277](http://static.kanter.cn/uPic/2020/08/04_image-20200804145834277.png)
+Sentinel会创建两个到主服务器的链接，一个为命令连接，一个为订阅信息连接。不同的Sentinel之间也会创建相互之间的命令连接。
+## Sentinel主观下线
+Sentinel根据配置文件中的down-after-milliseconds选项指定Sentinel判断实例进入主观下线所需的时长: 如果一个实例在down-after-milliseconds毫秒内，连续向Sentinel返回无效回复，那么Sentinel会修改这个实例对应的实例结构的flags属性为SRI_S_DOWN标示，以此来表示这个实例已进入主观下线状态。
+## Sentinel客观下线
+当一个实例被Sentinel判定为主观下线，为了确定这个实例是否真的下线了，它会向同样监视这个主服务器的其他Sentinel询问(发送is-master-down-by-addr命令)，若收到足够量(超过Sentinel配置中的quorun参数值)的下线回复后，Sentinel就会判定该服务器客观下线，并对主服务器执行故障转移。
 
+当一个主服务器被判定为客观下线后，监视这个主服务器的各个Sentinel会进行协商，选举一个领头Sentinel，由领头Sentinel对下线服务器执行故障转移操作。
+Redis的头领选举算法是[Raft算法](http://v.youku.com/v_show/id_XNjQxOTk5MTk2.html)的领头算法的实现，选举领头Sentinel的规则和方法如下:
+- 所有在线的Sentinel都可以参选。
+- 参选的Sentinel无论是否中选，Sentinel的配置纪元(configuration epoch)都会自增一次。
+- 在一个配置纪元中，所有的Sentinel都有一次将某个Sentinel设置为局部头领的机会，并且局部头领一旦设置，在这个配置纪元就不能再更改。(每个Sentinel在同一个配置纪元中可投票一次，投票后不能更改)
+- 每个发现主服务器进入客观下线的Sentinel都会要求其他Sentinel将自己设置为局部领头Sentinel
+- 当一个Sentinel向另一个Sentinel发送SENTINEL is-master-down-by-addr命令，并且命令中的runid不是*，而是源Sentinel的运行ID时，这表示源Sentinel要求目标Sentinel将自己设置为局部领头Sentinel
+- Sentinel设置局部领头的规则是先到先得，最先向目标Sentinel发送的源Sentinel将成为目标Sentinel的局部领头Sentinel，之后的请求会被拒绝。
+- 目标Sentinel受到SENTINEL is-master-down-by-addr命令之后，将向源Sentinel返回一条命令回复，回复中的leader_runid参数和leader_epoch参数分别记录了目标Sentinel的局部领头Sentinel的运行ID和配置纪元
+- 源Sentinel在接收到回复后，会检查回复中的leader_epoch和自己的配置纪元是否相同，如果相同的话，那么源Sentinel继续取出恢复中的leader_runid参数，如果leder_runid和源Sentinel的运行ID一致，那么表示目标Sentinel已经将源Sentinel设置为局部领头Sentinel
+- 如果有某个Sentinel被半数以上的Sentinel设置为了局部领头Sentinel，那么这个Sentinel成为Sentinel。 
+>配置纪元，实际就是一个计数器，可以理解为某一届选举。
+## 故障转移
+选举出来的领头Sentinel将对已下线的主服务器执行故障转移操作。
+- 挑选新的主服务器，发送SLAVEOF no one
+- 让已下线的主服务器的所有从服务器改为复制新的主服务器，对剩余的从服务器发送SLAVEOF 新主。
+- 将已下线的主服务器设置为新的主服务器的从服务器，当老的主服务器重新上线后，生效。
+>新的主服务器怎样挑选出来？
+>领头Sentinel会从已下线的主服务器得到所有从服务器的列表，然后按照以下规则，挑选新的主服务器
+>1.删除已处于下线或者断线的服务器，保证剩余的都是正常在线的
+>2.删除最近5秒内没有回复过领头Sentinel的INFO命令的从服务器，保证剩余的从服务器都是最近成功通信的。
+>3.删除所有与已下线主服务器连接断开超过down-after-milliseconds*10毫秒的从服务器，保证列表中的从服务器都没有过早与主服务器断开连接，换句话说，列表中的从服务器保存的数据都是比较新的。
+>4.根据优先级排序，选取优先级最高的。若优先级相同，选取偏移量最大的从服务器(保证数据最新)，若优先级、偏移量都相同，将按照运行ID排序，选取运行ID最小的。
 
-
-
-
-
+# 集群
+Redis集群节点就是一个运行在集群模式下的redis服务器，Redis会在启动的时候根据cluster-enabled配置选项是否为yes来决定是否开启服务器的集群模式。
+查看集群节点信息
+```sh
+>CLUSTER NODES
+```
+在A节点，将某个节点加入到集群
+```sh
+>CLUSTER MEET ip port
+```
+加入集群后，A节点会和新的节点握手，之后会通过Gossip协议将新节点介绍给集群里面的其他节点，让其他节点与新节点握手，一段时间后，新节点将被集群其他所有节点认识。
+## 槽指派
+Redis集群通过分片的方式来保存数据库中的键值对: 集群的整个数据库被分为16384个槽(slot)，数据库中的每个键都属于这16384个槽中的一个，集群中每个节点最多可以处理0-16384个槽。
+当数据库的所有槽都有节点在处理的时候，集群处于上线状态(OK)，否则处于下线状态(fail)。
+```sh
+# 指派槽操作
+>CLUSTER ADDSLOTS <slot> [slot ...]
+```
 # 扩展
 ## 为什么Redis对象共享不包含字符串对象？
 当服务器考虑将一个共享对象设置为键的值对象时，程序需要先检查给定的共享对象和键想创建的目标对象是否完全相同，只有在共享对象和目标对象完全相同的情况下，程序才会将共享对象用作键的值对象，而一个共享对象保存的值越复杂，验证共享对象和目标对象是否相同所需的复杂度就会越高，消耗的CPU时间也会越多：
