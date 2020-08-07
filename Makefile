@@ -11,9 +11,9 @@ keywords: {category},{title}
 description: {category},{title}
 ---
 > {title}
-<!-- more -->
 # 引言
 嘻嘻嘻
+<!-- more -->
 
 # 标题
 内容
