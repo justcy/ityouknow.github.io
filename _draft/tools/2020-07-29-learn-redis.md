@@ -4,13 +4,13 @@ title: "redis学习笔记"
 tagline: ""
 date: '2020-07-29 16:26:58 +0800'
 category: tools
-tags: tools redis
-keywords: tools,redis学习笔记,redis
+tags: tools redis 
+keywords: tools,redis学习笔记,redis,AOF,RDB
 description: tools,redis学习笔记
 ---
 > redis学习笔记
 # 引言
-Redis是你做软件开发不可能避开的中间件
+Redis是完全开源免费的，遵守BSD协议，是一个高性能的key-value数据库。此外，Redis还是你做软件开发不可能避开的中间件。
 
 # Redis的数据结构与对象
 redis的key始终为string，value存在5种数据结构。redis string 在底层以简单动态字符串(simple dynamic string SDS)存在。
@@ -427,6 +427,16 @@ redis>命令2
 …………
 redis>EXEC
 ```
+# Redis排序实现
+```sh
+redis>SORT <KEY>
+redis>SORT <KEY> ALPHA LIMIT <offset> <count> 
+redis>SORT <KEY> ALPHA GET *-name 
+redis>SORT <KEY> ALPHA BY *-id 
+redis>SORT <KEY> ASC/DESC
+redis>SORT <KEY> ALPHA STROE store_id
+redis>SORT <key> ALPHA DESC BY <by-pattern> LIMIT <offset> <count> GET <get-pattern> STORE <store_key>
+```
 # 扩展
 ## 为什么Redis对象共享不包含字符串对象？
 当服务器考虑将一个共享对象设置为键的值对象时，程序需要先检查给定的共享对象和键想创建的目标对象是否完全相同，只有在共享对象和目标对象完全相同的情况下，程序才会将共享对象用作键的值对象，而一个共享对象保存的值越复杂，验证共享对象和目标对象是否相同所需的复杂度就会越高，消耗的CPU时间也会越多：
@@ -451,8 +461,27 @@ Redis2.8版本后，新加了数据库通知。主要分为两种
 >只发送字符串油管的键空间   K$
 >只发送列表有关的键事件   El
 
+## 缓存穿透、缓存击穿、缓存雪崩
+- 缓存穿透，是指缓存和数据库中都没有数据，而用户不断发起请求，如：发起id为-1的数据或id特别大的，并不存在的数据。大量的请求会导致数据库压力过大。解决方案：1.接口增加校验，过滤非法参数。2.缓存取不到的数据，在数据库中也没有取到，同样将key-null缓存，有效时间可以设置短一点，一般不超过5分钟，这样防止攻击者反复使用同一个id暴力攻击。3. 采用布隆过滤器，将所有可能存在的数据hash到一个足够大的bitmap中，一个一定不存在的数据会被bitmap拦截掉。
+- 缓存击穿，指缓存中没有的数据，但是数据库中有的数据(一般为缓存时间到期)，这时候由于并发用户特别多，同事读取没有读到缓存，又同时去数据库去取数据，引起数据库压力瞬间增大。解决方案:1.使用互斥锁，避免都去读库。2.热点数据设置永不过期。
+- 缓存雪崩，缓存雪崩是指在同一时刻，缓冲中的数据大批量达到过期时间，同时，查询数据量巨大，引起reids数据库压力过大甚至down机。和缓存击穿不同的是，缓存击穿指并发查同一条数据，缓存雪崩是不同数据在同一时刻过期，很多数据在redis都查不到，从而需要查询数据库。解决方案:
+1.在原有缓存失效时间上增加一个随机量，降低缓存过期时间的重复率。2.使用二级缓存。3.使用锁或队列。4.设置过期标志更新缓存。5.热点数据设置永不过期。
+>缓存永不过期，真正的缓存过期时间不由Redis控制，而是由程序代码控制。当获取数据时发现数据超时，就发起一个异步请求去加载新的数据。这种策略不会产生死锁，但可能会造成缓存不一致的现象。
+
+## 布隆过滤器
+布隆过滤器(Bloom Filter)是1970年由布隆提出来的。它实际上是很长的二进制向量和一系列随机映射函数。布隆过滤器可以用于检索一个元素是否在一个集合中。它的优点是空间效率和查询时间都远远超过一般的算法，缺点是有一定的误识别率和删除困难。
+原理：当一个元素被加入集合时，通过K个hash函数将这个元素映射成一个bit数组中的K个点，把这些点置为1。检索时，我们只要看看这些点是不是都是1，就(大约)知道集合中有没有它了。如果其中有一个为0，那么这个元素一定不在，如果都是1，则元素有可能在。
+如何选择hash函数个数，以及布隆过滤器长度?
+$$
+\begin{array}{c}m=-\frac{n \ln p}{(\ln 2)^{2}} \\ k=\frac{m}{n} \ln 2\end{array}
+$$
+其中k为哈希函数个数，m为布隆过滤器长度，n为插入的元素个数，p为误报率。
+
+## BITCOUNT
+BITCOUNT要解决的问题-统计一个位数组中非0二进制位的数量，在数学上称为“计算汉明重量(Hamming Weight)”。
+目前已知最好的算法：variable-precision SWAR算法
 
 ---
 参考：
-- [黄健宏 著. Redis设计与实现 (数据库技术丛书) (Kindle Locations 1517-1525). 机械工业出版社. Kindle Edition. ]()
-- []()
+- [黄健宏 著. Redis设计与实现 (数据库技术丛书) (Kindle Locations 1517-1525). 机械工业出版社. Kindle Edition. ](https://book.douban.com/subject/25900156/)
+- [Bloom Filters](https://www.jasondavies.com/bloomfilter/)
