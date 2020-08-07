@@ -10,6 +10,7 @@ description: java,RabbitMQ详解
 ---
 > RabbitMQ详解
 <!-- more -->
+
 # 引言
 RabbitMQ是开源的，基于AMQP协议的消息中间件，RabbitMQ使用Erlang编写。可以用它来实现解耦、异步、削峰。
 # 使用RabbitMQ有什么好处？
