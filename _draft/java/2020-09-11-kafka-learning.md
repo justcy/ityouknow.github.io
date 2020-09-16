@@ -308,6 +308,129 @@ sysctl -w net.ipv4.tcp_window_scaling=1 / /echo net.ipv4.tcp_window_scaling=1 > 
 ```
 减少TCP慢启动时间: 设置/proc/sys/net/ipv4/tcp_slow_start_after_idle=0
 ## 其他跨集群镜像方案
+### uber的uReplicator
+MirrorMaker会有再均衡延迟，并且难以增加新的主题等问题，uReplicator使用Apache Helix作为中心控制器，控制器管理着主题列表和分配给每个uReplicator实例的分区。管理员通过REST API添加新主题，uReplicator负责将分区分配给不同的消费。uber使用Helix Consumer替换MirrorMaker里的kafka Consumer。Helix Consumer接受由Helix控制器分配的分区，而不是在消费者间再均衡。
+### Confluent的Replicator
+Replicator为Confluent的企业用户解决了他们在MirrorMaker进行多集群部署时所遇到的问题。Replicator里，每个任务包含一个消费者，一个生产者。connect根据实际情况将不同的任务分配给不同的worker节点，因此单个服务器上会有多个任务，或者任务被分散在多个服务器上，这样就避免了手动去配置每个MirrorMaker实例需要多少个线程，以及每台服务器需要多少个MirrorMaker实例。此外，Replicator不仅可以从kafka上复制数据，还可以从zookeeper上复制主题的配置信息。
+# 管理Kafka
+## 主题操作
+kafka-topic.sh可执行大部分的主题操作。如：创建、修改、删除、和查看主题。
+```sh
+#kafka-topic.sh --zookeeper localhost:2181/kafka-cluster --create --topic my-topic --replication-factor 2 --partitions 8
+
+#kafka-topic.sh --zookeeper localhost:2181/kafka-cluster --alert --topic my-topic --replication-factor 2 --partitions 16
+
+#kafka-topic.sh --zookeeper localhost:2181/kafka-cluster --delete --topic my-topic
+
+#kafka-topic.sh --zookeeper localhost:2181/kafka-cluster --list
+
+//topic为可选，指定topic后只会显示指定topic的详情 --under-replicated-partitions列出所有包含不同步副本的分区。
+#kafka-topic.sh --zookeeper localhost:2181/kafka-cluster --describe --topic xxx
+```
+## 消费者群组
+旧版本的消费者信息保存在zookeeper上，新版本的消费者信息保存在broker上。可以使用kafka-consumer-groups.sh工具查看，旧版本带--zookeeper，新版本带--bootstrap-server。
+```sh
+# kafka-consumer-groups.sh --zookeeper localhost:2181/kafka-cluster --list
+
+# kafka-consumer-groups.sh --zookeeper localhost:2181/kafka-cluster --describe --group testgroup
+
+//--topic 从消费者中删除指定的topic
+# kafka-consumer-groups.sh --zookeeper localhost:2181/kafka-cluster --delete --group testgroup
+
+//导出偏移量
+# kafka-run-classh.sh kafka.tools.ExportZKOffsets --zkconnect localhost:2181/kafka-cluster --group testgroup --output-file offsets
+//导入偏移量
+# kafka-run-classh.sh kafka.tools.ImportZKOffsets --zkconnect localhost:2181/kafka-cluster --group testgroup --input-file offsets
+```
+## 动态配置变更
+```sh
+# kafka-configs.sh --zookeeper localhost:2181/kafka-cluster --alter --entity-type topics --entity-name test --add-config key=value,key1=value1
+
+# kafka-configs.sh --zookeeper localhost:2181/kafka-cluster --alter --entity-type client --entity-name client-id --add-config key=value,key1=value1
+
+//列出可被覆盖的配置，不包括默认配置
+# kafka-configs.sh --zookeeper localhost:2181/kafka-cluster --describe --entity-type topic --entity-name topic-name
+//列出可被覆盖的配置，不包括默认配置
+# kafka-configs.sh --zookeeper localhost:2181/kafka-cluster --describe --entity-type topic --entity-name topic-name --delete-config retention.ms
+```
+## 分区管理
+kafka提供两个脚本用于管理分区，一个用于重新选举首领，另一个用于将分区分配给broker。
+```sh
+//启动集群的首领选举，若节点元数据小于1M，节点会被写到zookeeper上，大于1M使用json文件
+# kafka-preferred-replica-election.sh --zookeeper localhost:2181/kafka-cluster
+
+# kafka-preferred-replica-election.sh --zookeeper localhost:2181/kafka-cluster --path-to-json-file partitions.json
+//修改分区副本,为topics.json文件里的主题生成迁移步骤，将这些主题迁移到broker0和broker1上
+# kafka-reassign-partitons.sh --zookeeper localhost:2181/kafka-cluster --topic-to-move-json-file topics.json --broker-list 0,1
+//执行迁移
+# kafka-reassign-partitons.sh --zookeeper localhost:2181/kafka-cluster --execute --reassignment-json-file reassign.json
+//验证
+# kafka-reassign-partitons.sh --zookeeper localhost:2181/kafka-cluster --verify --reassignment-json-file reassign.json
+
+//验证分区副本一致性
+# kafka-replica-verification.sh --broker-list localhost:9001,localhost:9002 --topic-with-list 'my-.*'
+```
+## 消费和生产
+利用脚本kafka-console-consumer.sh和kafka-console-producer.sh可以手动生成或消费消息。
+## 客户端ACL
+命令工具kafaka-acls.sh可以用于处理客户端访问控制相关的问题。
+
+# 监控Kafka
+## broker度量指标
+### 非同步分区
+该指标指明了作为首领的broker有多少个分区处于非同步状态。若指标一直保持不变，那么说明集群中的某个broker已经离线。整个集群非同步分区的数据量等于离线broker的数量。若指标波动，或者虽然数量稳定，但是没有broker离线，说明集群出现了性能问题。需要确认问题与单个broker有关还是与整个集群有关。
+集群级别的问题一般分为两类：1.不均衡的负载。2.资源过度消耗
+其中不均衡问题负载定位需要用到以下指标
+- 分区的数量
+- 首领分区的数量
+- 主题流入字节速率
+- 主题流入消息速率
+在均衡的集群中，这些度量指标的数值在整个集群范围是均等的。也就是说，所有的broker几乎处理相同的流量。假设在运行了默认的副本选举后，这些度量指标出现了很大的偏差，那说明集群的流量出现了不均衡。
+资源过度消耗问题可以通过以下指标监控
+- CPU使用
+- 网络输入吞吐量
+- 王路输出吞吐量
+- 磁盘平均等待时间
+- 磁盘使用百分比
+上述任何一种资源出现过度消耗，都表现为分区的不同步。
+主机级别的问题
+如果性能问题不是出现在集群上，而是出现在一两个broker里，那么就要检查broker所在的主机。主机级别问题可分为以下几类：
+- 硬件问题，使用硬件检测工具检测。
+- 进程冲突，其他应用程序的运行消耗系统资源，给Kafka带来压力。
+- 本地的配置不一致，broker配置或者系统配置与其他不一致。
+### broker度量指标
+除了非同步分区外，还有很多其他指标需要监控，包括：
+- 活跃控制器数量，0或者1。任何时候只有一个控制器，若出现两个，说明有一个本该退出的控制器线程被阻塞了，这会导致管理任务无法正常执行，比如移动分区。
+- 请求处理器空闲率，Kafka使用两个线程来处理客户端请求，网络处理器线程池、请求处理器线程池。前者负责通过网络读入和写出数据，后者负责处理来自客户端的请求，包括：从磁盘读取消息和写入消息。若boker负载增长，会对该指标造成很大影响。空闲低于20%会有潜在问题，低于10%说明出现了性能问题。
+- 主题流入字节，该指标可以用于确定何时该对集群进行扩展或开展其他与规模增长相关的工作。它也可以用于评估一个broker是否比集群里的其他broker接收了更多的流量，如果出现这种情况，就需要对分区进行再均衡。
+- 主题流出字节，与主题流入字节类似，是另一个与规模增长有关的度量指标。
+- 主题流入的消息，以每秒生成的消息个数来度量流量，不考虑消息大小。
+- 分区数量，分区总数，一般不会改变。
+- 首领数量，应该在整个集群的broker上保持均等。
+- 离线分区，离线分区数量。
+- 请求度量指标，每个kafka请求，都有相应的度量指标。
+### 主题和分区的度量指标
+#### 主题实例的度量指标
+#### 分区实例的度量指标
+### java虚拟机监控
+除了broker外，还应该对服务器提供的一些标准进行监控，包括JVM虚拟机。如果JVM频繁发生垃圾回收，就会影响broker的性能。
+- 垃圾回收，对JVM来说最需要监控的就是GC，CollectionCount垃圾回收次数，CollectionTime垃圾回收时间(ms)，LastGcInfo里，duration以ms为单位，表示最后一次GC花费的时间。
+- java操作系统监控，这些指标中有两个比较有用，但是在操作系统中难以收集到，分别是：MaxFileDescriptorCount和OpenFileDescriptorCount，分别表示，JVM能够打开的文件描述符(FD)最大数量和已打开的文件描述符数量。
+### 操作系统监控
+对操作系统，需要监控CPU使用、内存使用、磁盘使用、磁盘I/O和网络使用情况。
+对于CPU us: 用户空间使用时间 sy: 内核空间使用时间 ni: 低优先级进程使用时间 id: 空闲时间 wa: 磁盘等待时间 hi: 处理硬件中断时间 si: 处理软件中断时间 st: 等待管理程序时间
+对于内存，需监控内存空间和可用交换内存空间，确保内存交换空间不会被占用。
+对于磁盘，需监控磁盘空间和索引节点进行监控，确保磁盘空间不被用光。此外磁盘I/O反应了磁盘的运行效率，需要监控磁盘的读写速度、读写平均队列大小、平均等待时间和磁盘使用百分比。
+对于网络，需要监控流入和流出的网络流量。
+### 日志
+将kafka.controller、kafka.server.ClientQuotaManager 设为INFO级别，并与broker主日志文件分开存放。
+将kafka.request.logger、kafka.log.LogCleaner、kafka.log.Cleaner和kafka.log.LogCleanerManager设为DEBUG
+## 客户端监控
+### 生产者度量指标
+### 消费者度量指标
+### 配额
+## 延时监控
+## 端到端监控
 
 ---
 参考：
