@@ -28,7 +28,8 @@ Linux 下的I/O模型一共有5种，分别是
     记住这两点很重要，因为这些I/O Model的区别就在于两个阶段上各有不同的情况。
 
 # 阻塞I/O模型（blocking I/O）
-在linux系统中，默认情况下所有的socket都是blocking的，一个典型的读流操作如下:![graphics/06fig01.gif](http://static.kanter.cn/uPic/2020/07/22_06fig01.gif)
+在linux系统中，默认情况下所有的socket都是blocking的，一个典型的读流操作如下:
+![graphics/06fig01.gif](http://static.kanter.cn/uPic/2020/07/22_06fig01.gif)
     当用户进程调用了recvfrom这个系统调用，kernel就开始了I/O的第一个阶段：准备数据。对于network io来说，很多时候数据一开始还没到达（比如，还没有收到完整的UDP包），这个时候kernel就要等待足够的数据到来。而在用户进程这边，整个进程被阻塞。当kernel一直等到数据准备好了，它就会将数据从kernel的系统缓冲区拷贝到用户内存，然后kernel 返回结果，用户进程收到后，解除block状态，重新运行起来。所以，blocking I/O的特点就是在I/O执行的两个阶段都被block了。
     当使用socket()函数和WSASocket()函数来创建套接字时，默认的套接字都是阻塞的。这意味着当windows socket API 不能立即完成时，线程处于等待状态，直到操作完成。
     并不是所有的Windows sockets API以阻塞socket为参数调用都会发生阻塞。例如，以阻塞模式的socket为参数的bind()、listen()函数时，函数会立即返回。将可能阻塞socket的Windows sockets API调用分为以下四种：
@@ -39,6 +40,7 @@ Linux 下的I/O模型一共有5种，分别是
     使用阻塞模式套接字，开发网络程序比较简单，容易实现。当希望能够立即发送和接收数据，且处理的套接字数量比较少的情况下。使用阻塞模式来开发网络程序比较合适。
     阻塞模式套接字不足表现为，在大量建立好的套接字线程之间进行通信比较困难。当使用“生产者-消费者”模型开发网络程序时，为每个套接字都分配一个读线程，一个处理数据线程和一个用于同步的事件无疑会加大系统开销。阻塞模式最大的缺点就是当需要同时处理大量套接字时，将无从下手，扩展性能很差。
 > 在socket程序中 Socket和WSASocket的区别:WSASocket是windows专用，支持异步操作，Socket是unix 标准，只支持同步操作。socket 可采用多线程实现非阻塞。
+
 # 非阻塞I/O模型（non-blocking I/O）
     linux下，可以通过设置socket使其变为non-blocking。当对一个non-blocking socket进行读写操作时，流程如下：
 ![graphics/06fig02.gif](http://static.kanter.cn/uPic/2020/07/22_06fig02.gif)
@@ -55,7 +57,7 @@ I/O复用模型，也就是通常所说的，select、poll、epoll。有些地�
 ![graphics/06fig03.gif](http://static.kanter.cn/uPic/2020/07/23_06fig03.gif)	
     当用户调用了select，那么整个进程就被block，而同时，kernel会”监视“所有select负责的socket，当有任何socket中的数据准备好了，select就会返回。再由用户进程将数据从kernel拷贝到用户进程。
     上图和Blocking I/O的图其实并没有太大不同，事实上，效率还更差一些。因为这里需要两次system call(select和recvfrom)，而blocking I/O只调用了一个system call(recvfrom)。但是，用select的优势在于它可以同时处理多个connection。所以，若处理的连接数并不是很高的话，使用select/epoll的web server不一定比multi-threading + blocking I/O的web server性能更好，相反，可能延迟还要更大。select/epoll的优势并不在于对单个链接处理更快，而是在于能够处理更多的链接。
-    在I/O multiplexing model中，对于每个socket，一般都设置成为non-blocking,但是如上图所示，真个用户的process其实一直被block 的。只不过process是被select这个函数block而不是被 socket I/O给block的。
+    在I/O multiplexing model中，对于每个socket，一般都设置成为non-blocking,但是如上图所示，这个用户的process其实一直被block 的。只不过process是被select这个函数block而不是被 socket I/O给block的。
 # 信号驱动模型（Signal-driven I/O）
 首先我们允许套接口进行信号驱动I/O,并安装一个信号处理函数，进程继续运行并不阻塞。当数据准备好时，进程会收到一个SIGIO信号，可以在信号处理函数中调用I/O操作函数处理数据。(signal driven I/O在实际中并不常用)
 
@@ -133,7 +135,7 @@ struct timeval
 select的本质上是通过设置和检查存放fd标志位的数据结构来进行下一步处理。这样所带来的的缺点是：
 
 1. 单个进程可监视的fd数量被限制，即能监听端口的大小有限制，一般来说，这个数据和系统的内存关系很大，具体数据可以用以下命令查看。32位机器默认是1024个。64位机器默认是2048个。
-2. 对socket进行的扫描是线性扫描，即采用轮询的方法，效率较低。当socket比较多的时候，每次select()都要通过遍历FD_SETSIZE个socket来完成调度，不管哪个socket是活跃的，都遍历一遍。这会浪费很多CPU时间。如果能给每个套接字注册某个回调函数，当他们活跃时，自动完成相关操作，那就避免了轮训，这正是epoll与kqueue做的。
+2. 对socket进行的扫描是线性扫描，即采用轮询的方法，效率较低。当socket比较多的时候，每次select()都要通过遍历FD_SETSIZE个socket来完成调度，不管哪个socket是活跃的，都遍历一遍。这会浪费很多CPU时间。如果能给每个套接字注册某个回调函数，当他们活跃时，自动完成相关操作，那就避免了轮询，这正是epoll与kqueue做的。
 3. 需要维护一个用来存放大量fd的数据结构，这样会使得用户空间和内核空间在传递数据结构时复制开销大。
 
 ### poll
@@ -166,7 +168,7 @@ kqueue是UNIX上比较高效的I/O复用技术。与epoll类似，不过比epoll
 | :----: | :--------: | :-------------------: | :-------------------: |
 | select | 单个进程所能打开的最大连接数有FD_SETSIZE宏定义，其大小是32个整数的大小（在32位的机器上，大小就是32*32，同理64位机器上FD_SETSIZE为32*64），当然我们可以对进行修改，然后重新编译内核，但是性能可能会受到影响，这需要进一步的测试。 | 因为每次调用时都会对连接进行线性遍历，所以随着FD的增加会造成遍历速度慢的“线性下降性能问题”。 | 内核需要将消息传递到用户空间，都需要内核拷贝动作 |
 | poll   | poll本质上和select没有区别，但是它没有最大连接数的限制，原因是它是基于链表来存储的 | 同上 | 同上 |
-| poll   | 虽然连接数有上限，但是很大，1G内存的机器上可以打开10万左右的连接，2G内存的机器可以打开20万左右的连接 | 因为epoll内核中实现是根据每个fd上的callback函数来实现的，只有活跃的socket才会主动调用callback，所以在活跃socket较少的情况下，使用epoll没有前面两者的线性下降的性能问题，但是所有socket都很活跃的情况下，可能会有性能问题。 | epoll通过内核和用户空间共享一块内存来实现的 |
+| epoll   | 虽然连接数有上限，但是很大，1G内存的机器上可以打开10万左右的连接，2G内存的机器可以打开20万左右的连接 | 因为epoll内核中实现是根据每个fd上的callback函数来实现的，只有活跃的socket才会主动调用callback，所以在活跃socket较少的情况下，使用epoll没有前面两者的线性下降的性能问题，但是所有socket都很活跃的情况下，可能会有性能问题。 | epoll通过内核和用户空间共享一块内存来实现的 |
 
 综上所述，选择select，poll，epoll时要根据具体的使用场合以及这三种方式的自身特点。表面上看epoll的性能最好，但是在连接数少并且连接都十分活跃的情况下，select和poll的性能可能比epoll好，毕竟epoll的通知机制需要很多函数回调。select低效是因为每次它都需要轮询。但低效也是相对的，视情况而定，也可通过良好的设计改善。
 
