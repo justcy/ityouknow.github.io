@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "mysql学习笔记"
+title: "mysql学习笔记-待续"
 tagline: ""
 date: '2020-08-07 16:03:44 +0800'
 category: mysql

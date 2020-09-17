@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "linux常用命令"
+title: "linux常用命令-待续"
 tagline: ""
 date: '2020-07-13 20:49:44 +0800'
 category: linux
