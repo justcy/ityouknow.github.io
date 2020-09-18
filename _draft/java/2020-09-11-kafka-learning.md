@@ -4,7 +4,7 @@ title: "《kafka权威指南》读书笔记"
 tagline: ""
 date: '2020-09-11 11:28:27 +0800'
 category: java
-tags: java kafka《kafka权威指南》读书笔记
+tags: java kafka
 keywords: java,kafka,流处理,消费者,生产者《kafka权威指南》读书笔记
 description: java,《kafka权威指南》读书笔记
 
