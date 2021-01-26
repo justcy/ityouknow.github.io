@@ -93,6 +93,7 @@ git checkout v4.4.x
 ```
 >swoole从4.6.0版本开始不再支持PHP7.1
 >![image-20210113112743730](http://static.kanter.cn/uPic/2021/01/13/image-20210113112743730.png)
+
 ## 添加swoole到php.ini
 ```sh
 [root@ip-172-31-0-176 ~]# php --ini 
