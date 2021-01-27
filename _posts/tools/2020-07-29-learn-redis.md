@@ -437,6 +437,36 @@ redis>SORT <KEY> ASC/DESC
 redis>SORT <KEY> ALPHA STROE store_id
 redis>SORT <key> ALPHA DESC BY <by-pattern> LIMIT <offset> <count> GET <get-pattern> STORE <store_key>
 ```
+# Redis脚本执行
+从redis 2.6.0版本开始，Redis支持执行**lua5.1**脚本，相关命令如下：
+```sh 
+redis>EVAL 
+redis>EVALSHA  
+redis>SCRIPT LOAD
+redis>SCRIPT DEBUG
+redis>SCRIPT EXISTS
+redis>SCRIPT FLUSH
+redis>SCRIPT KILL
+```
+需要注意的是lua从5.3开始支持位运算，5.3之前需要自己实现位运算
+```
+lua 5.3之前版本
+
+lua5.3之后
+&	按位与
+|	按位或
+~	按位异或
+>>	右移
+<<	左移
+~	按位非
+使用方法：
+c = a & b      
+c = a | b
+c = a ~ b
+c = a >> b
+c = a << b
+c = ~a
+```
 # 扩展
 ## 为什么Redis对象共享不包含字符串对象？
 当服务器考虑将一个共享对象设置为键的值对象时，程序需要先检查给定的共享对象和键想创建的目标对象是否完全相同，只有在共享对象和目标对象完全相同的情况下，程序才会将共享对象用作键的值对象，而一个共享对象保存的值越复杂，验证共享对象和目标对象是否相同所需的复杂度就会越高，消耗的CPU时间也会越多：
