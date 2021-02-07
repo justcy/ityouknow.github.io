@@ -511,6 +511,26 @@ $$
 BITCOUNT要解决的问题-统计一个位数组中非0二进制位的数量，在数学上称为“计算汉明重量(Hamming Weight)”。
 目前已知最好的算法：variable-precision SWAR算法
 
+# docker部署redis集群
+## Step1.配置docker-compose 
+```sh
+ redis-node-06:
+    image: redis:alpine
+    container_name: redis-node-06
+    restart: always
+    command: ["redis-server","--cluster-enabled","yes"]
+    ports:
+      - "7006:6379"
+    networks:
+      default:
+        ipv4_address: "172.26.0.16"
+```
+## Step2.创建集群
+登陆其中一台容器，执行；
+```sh
+> redis-cli --cluster create 172.26.0.11:6379 172.26.0.12:6379 172.26.0.13:6379 172.26.0.14:6379 172.26.0.15:6379 172.26.0.16:6379 --cluster-replicas 1
+```
+
 ---
 参考：
 - [黄健宏 著. Redis设计与实现 (数据库技术丛书) (Kindle Locations 1517-1525). 机械工业出版社. Kindle Edition. ](https://book.douban.com/subject/25900156/)
