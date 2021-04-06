@@ -131,8 +131,11 @@ alpine下，swoole源码安装依赖以下环境
 # Step2 调整代码
 lumen和laravel集成使用swoole在github上有很多项目如：
 - [laravel-swoole](https://github.com/swooletw/laravel-swoole)
+
 - [laravel-s](https://github.com/hhxsv5/laravel-s)
-这里我们使用laravel-swoole
+  这里我们使用laravel-swoole
+
+> 实际使用过程中laravel-swoole在启用websocket的时候会有报错，暂时并没有找到解决方案。所以笔者实际项目中采用的是laravel-s部署。
 ## 安装laravel-swoole
 ```php
 $ composer require swooletw/laravel-swoole
