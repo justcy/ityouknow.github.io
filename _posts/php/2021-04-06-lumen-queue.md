@@ -76,6 +76,7 @@ description: php,lumen队列在项目中的应用
            
   ```
 > 以上是在php发布方式不改变，继续使用php-fpm的状况下的权宜之计，从长远看，应该及时使用长连接，如PHP+swoole，具体可参考 [lumen整合使用swoole发布](https://blog.kanter.cn/php/2021/01/12/lumen-start-with-swoole/)，或者使用golang或java等常驻内存支持长连接的语言。
+
 # lumen队列配置
 ## step1. 在项目目录**confg/**下新增配置queue.php配置文件，内容如下：
 ```php
