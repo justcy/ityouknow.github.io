@@ -77,7 +77,14 @@ a
 ```
 命令：
 ```sh
-for i in `cat B.txt`;do awk '{if(NR=="'$i'") print $0}' A.txt;done > C.txt 
+for i in `cat B.txt`;do awk -F ","  '{if(NR=="'$i'") print $0}' A.txt;done > C.txt 
+for i in `cat B.txt`;do awk -F "," v val="$i" '{if($1==val) print $0}' A.txt;done >  C.txt 
+for i in `cat B.txt`;do i=$[i+1];awk -F ","  '{if(NR=="'$i'") print $0}' A.txt;done > C.txt 
+
+for seed in `cat seed.txt`; do
+	# cat result_test.txt | awk  -F "," '{if($1=="$seed") print $0}'  
+	awk  -F "," -v val="$seed" '{if($1==val) print $0}' result.csv >> result_filter.txt
+done
 ```
 
 # docker安装
@@ -98,8 +105,17 @@ sudo systemctl start docker
 # 安装docker-compose
 yum -y install gcc gcc-c++ python-pip && pip install docker-compose
 ```
-
-
+# Centos6安装php7.2
+```sh
+# yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
+# yum install http://rpms.remirepo.net/enterprise/remi-release-6.rpm
+# yum install yum-utils
+# yum-config-manager --enable remi-php72   [Install PHP 7.2]
+# yum-config-manager --enable remi-php70   [Install PHP 7.0]
+# yum-config-manager --enable remi-php71   [Install PHP 7.1]
+# yum install php php-mcrypt php-cli php-gd php-curl php-mysql php-ldap php-zip php-fileinfo php-fpm php-swoole php-redis
+# php -v
+```
 
 # 代码清单
 行内代码应用 `code`
