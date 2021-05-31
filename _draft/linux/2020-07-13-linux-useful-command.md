@@ -116,6 +116,27 @@ yum -y install gcc gcc-c++ python-pip && pip install docker-compose
 # yum install php php-mcrypt php-cli php-gd php-curl php-mysql php-ldap php-zip php-fileinfo php-fpm php-swoole php-redis
 # php -v
 ```
+# vi 批量注释和解注释
+## 方法一：可视块模式
+批量注释
+>Ctrl+v进入VISUAL BLOCK（可视块）模式，按 j （向下选取列）或者 k （向上选取列）
+按Shift + I 进入编辑模式，输入你想要插入的字符（任意字符）
+按两次Esc就可以实现批量插入字符，不仅仅实现批量注释而已。
+
+批量解注释
+>Ctrl+v进入VISUAL BLOCK（可视块）模式，按 j （向下选取列）或者 k （向上选取列）
+按 x 或者 d 批量删除字符
+
+## 方法二：末行模式替换
+批量注释
+>命令行模式下，输入 " : 首行号，尾行号s /^/字符/g "实现批量插入字符。
+如 输入:5,10s/^/#/g，在5到10行首插入#
+如 输入:5,10s/$/#/g，在5到10行尾追加#
+
+批量解注释
+>命令行模式下，输入 " : 首行号，尾行号s /^字符//g "实现批量删除字符。
+如 输入:5,10s/^#//g，在5到10行首删除#
+如 输入:5,10s/#$/?/g，在5到10行尾将#替换成?
 
 # 代码清单
 行内代码应用 `code`
