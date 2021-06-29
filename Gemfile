@@ -5,4 +5,5 @@ group :jekyll_plugins do
   #gem 'nokogiri', '=1.10.9'
   gem 'dnsruby', '=1.61.3'
   gem 'nokogiri','=1.10.10'
+  gem 'ffi','=1.14.2'
 end
